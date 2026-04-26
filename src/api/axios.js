@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Base instance — replace baseURL with your real API later
 const axiosInstance = axios.create({
-  baseURL: "https://jsonplaceholder.typicode.com", // mock API for now
+  baseURL: "https://api.fda.gov", // mock API for now
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -35,4 +35,4 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-export default axios;
+export default axiosInstance;

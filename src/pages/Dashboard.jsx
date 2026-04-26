@@ -5,6 +5,7 @@ import Loading from "../components/Loading";
 import { useAuth } from "../context/AuthContext";
 import { useAppContext } from "../context/AppContext";
 import axios from "../api/axios";
+import QuoteGenerator from "../components/QuoteGenerator";
 
 const heartRateData = [
   { time: "6am", bpm: 62 }, { time: "8am", bpm: 74 }, { time: "10am", bpm: 88 },
@@ -25,24 +26,48 @@ export default function Dashboard() {
   const [tips, setTips] = useState([]);
   const [tipsLoading, setTipsLoading] = useState(true);
 
+  // useEffect(() => {
+  //   const fetchTips = async () => {
+  //     try {
+  //       setTipsLoading(true);
+  //       await axios.get("/drug/enforcement.json?limit=3");
+  //       setTips([
+  //         { id: 1, tip: "Drink 8 glasses of water daily 💧" },
+  //         { id: 2, tip: "Take a 10 min walk after every meal 🚶" },
+  //         { id: 3, tip: "Sleep 7-8 hours for optimal recovery 🌙" },
+  //       ]);
+  //     } catch (err) {
+  //       setTips([{ id: 1, tip: "Stay healthy and hydrated! 💧" }]);
+  //     } finally {
+  //       setTipsLoading(false);
+  //     }
+  //   };
+  //   fetchTips();
+  // }, []);
+
+
   useEffect(() => {
     const fetchTips = async () => {
       try {
         setTipsLoading(true);
-        await axios.get("/posts?_limit=3");
-        setTips([
-          { id: 1, tip: "Drink 8 glasses of water daily 💧" },
-          { id: 2, tip: "Take a 10 min walk after every meal 🚶" },
-          { id: 3, tip: "Sleep 7-8 hours for optimal recovery 🌙" },
-        ]);
+        const res = await axiosInstance.get("/drug/enforcement.json?limit=3");
+
+        // API se jo data aaya usse tips banao
+        const recalls = res.data.results.map((item, i) => ({
+          id: i,
+          tip: "⚠️ " + item.product_description?.slice(0, 60) + "..."
+        }));
+        setTips(recalls);
       } catch (err) {
-        setTips([{ id: 1, tip: "Stay healthy and hydrated! 💧" }]);
+        setTips([{ id: 1, tip: "Healthy raho, hydrated raho! 💧" }]);
       } finally {
         setTipsLoading(false);
       }
     };
     fetchTips();
   }, []);
+
+
 
   const takenCount = medications.filter((m) => m.taken).length;
 
@@ -80,6 +105,11 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+
+
+        <QuoteGenerator />
+
+
 
         {/* Chart + Meds Summary */}
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "20px", marginBottom: "24px" }}>

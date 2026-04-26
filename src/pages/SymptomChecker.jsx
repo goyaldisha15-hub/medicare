@@ -18,6 +18,56 @@ const URGENCY_CONFIG = {
   low: { color: "#22c55e", bg: "#f0fdf4", border: "#bbf7d0", icon: "✅", label: "Monitor at Home" },
 };
 
+
+const MOCK_RESPONSES = [
+  {
+    keywords: ["Headache", "Migraine", "Dizziness"],
+    response: {
+      urgency: "low",
+      conditions: ["Tension Headache", "Migraine"],
+      advice: "Rest in a quiet, dark room and stay hydrated. Avoid screen exposure for some time.",
+      specialist: "Neurologist",
+      doList: ["Drink water", "Take proper rest"],
+      dontList: ["Avoid loud noise", "Avoid stress"]
+    }
+  },
+  {
+    keywords: ["Chest pain", "Shortness of breath", "Palpitations"],
+    response: {
+      urgency: "high",
+      conditions: ["Heart Disease", "Anxiety Attack"],
+      advice: "Seek medical attention immediately if symptoms persist or worsen.",
+      specialist: "Cardiologist",
+      doList: ["Stay calm", "Sit down and rest"],
+      dontList: ["Avoid exertion", "Do not ignore symptoms"]
+    }
+  },
+  {
+    keywords: ["Stomach pain", "Nausea", "Vomiting"],
+    response: {
+      urgency: "medium",
+      conditions: ["Food Poisoning", "Gastritis"],
+      advice: "Stay hydrated and avoid spicy food. If symptoms persist, consult a doctor.",
+      specialist: "Gastroenterologist",
+      doList: ["Drink ORS", "Eat light food"],
+      dontList: ["Avoid junk food", "Avoid dehydration"]
+    }
+  },
+  {
+    keywords: ["Cough", "Sore throat"],
+    response: {
+      urgency: "low",
+      conditions: ["Common Cold", "Viral Infection"],
+      advice: "Take warm fluids and rest. Monitor for fever.",
+      specialist: "General Physician",
+      doList: ["Drink warm water", "Take steam"],
+      dontList: ["Avoid cold drinks"]
+    }
+  }
+];
+
+
+
 export default function SymptomChecker() {
   const { symptomHistory, addSymptomRecord } = useAppContext();
   const [selectedPart, setSelectedPart] = useState(null);
@@ -40,54 +90,38 @@ export default function SymptomChecker() {
     }
   };
 
-  const analyzeSymptoms = async () => {
+  const analyzeSymptoms = () => {
     if (selectedSymptoms.length === 0) return;
+
     setLoading(true);
     setResult(null);
 
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{
-            role: "user",
-            content: `You are a medical assistant AI. A patient reports these symptoms: ${selectedSymptoms.join(", ")}. 
-            
-            Respond ONLY in this exact JSON format with no extra text:
-            {
-              "urgency": "low|medium|high|emergency",
-              "conditions": ["condition1", "condition2", "condition3"],
-              "advice": "2-3 sentence practical advice",
-              "specialist": "Type of doctor to see",
-              "doList": ["do this", "do this"],
-              "dontList": ["avoid this", "avoid this"]
-            }`
-          }]
-        })
-      });
+    setTimeout(() => {
+      let matched = null;
 
-      const data = await response.json();
-      const text = data.content.map((c) => c.text || "").join("");
-      const clean = text.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
+      for (let item of MOCK_RESPONSES) {
+        if (item.keywords.some(k => selectedSymptoms.includes(k))) {
+          matched = item.response;
+          break;
+        }
+      }
 
-      setResult(parsed);
-      addSymptomRecord({ symptoms: selectedSymptoms, result: parsed });
-    } catch (err) {
-      setResult({
+      const fallback = {
         urgency: "medium",
-        conditions: ["Unable to analyze at this time"],
-        advice: "Please consult a healthcare professional for proper diagnosis.",
+        conditions: ["General Infection", "Unknown Condition"],
+        advice: "Symptoms are unclear. Please consult a doctor if they persist.",
         specialist: "General Physician",
-        doList: ["Rest and stay hydrated", "Monitor your symptoms"],
-        dontList: ["Don't ignore worsening symptoms"]
-      });
-    } finally {
+        doList: ["Rest", "Stay hydrated"],
+        dontList: ["Avoid self-medication"]
+      };
+
+      const finalResult = matched || fallback;
+
+      setResult(finalResult);
+      addSymptomRecord({ symptoms: selectedSymptoms, result: finalResult });
+
       setLoading(false);
-    }
+    }, 1200); // fake AI delay
   };
 
   const urgencyInfo = result ? URGENCY_CONFIG[result.urgency] : null;
